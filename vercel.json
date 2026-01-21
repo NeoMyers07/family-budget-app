@@ -2,5 +2,8 @@
   "framework": "vite",
   "buildCommand": "cd family-budget && npm install && npm run build",
   "outputDirectory": "family-budget/dist",
-  "installCommand": "echo 'skipping root install'"
+  "installCommand": "echo 'skipping root install'",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }
