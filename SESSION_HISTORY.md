@@ -12,9 +12,47 @@ Available Budget = (Checking Balance - $4,700) + Paycheck Amount
 Remaining Budget = Available Budget - Mortgage - Savings - Total Spending
 ```
 
+**Live URL:** https://family-budget-sand.vercel.app
+**GitHub:** https://github.com/NeoMyers07/family-budget-app
+
 ---
 
-## Completed This Session (January 20, 2026)
+## Completed This Session (January 20, 2026 - Evening)
+
+### 1. GitHub Repository Setup
+- Authenticated with GitHub CLI (`gh auth login`)
+- Created public repo: `NeoMyers07/family-budget-app`
+- Pushed all project files to `master` branch
+
+### 2. Vercel Deployment
+- Installed Vercel CLI and authenticated
+- Initial deployment failed (404) due to project structure
+- Fixed by deploying directly from `family-budget/` subdirectory
+- Created `vercel.json` for build configuration
+- Final project: `family-budget` on Vercel
+
+### 3. Firebase Environment Variables
+- Added all 6 Firebase env vars to Vercel production:
+  - `VITE_FIREBASE_API_KEY`
+  - `VITE_FIREBASE_AUTH_DOMAIN`
+  - `VITE_FIREBASE_PROJECT_ID`
+  - `VITE_FIREBASE_STORAGE_BUCKET`
+  - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+  - `VITE_FIREBASE_APP_ID`
+- Fixed newline character issue in env vars (was causing auth iframe errors)
+
+### 4. Google Sign-In Configuration
+- Added `family-budget-sand.vercel.app` to Firebase authorized domains
+- Added authorized JavaScript origins and redirect URIs in Google Cloud Console
+- Google Sign-In now working in production
+
+### 5. Cleanup
+- Deleted old Vercel project (`family-budget-app`)
+- Updated `.gitignore` to exclude `.vercel` folders
+
+---
+
+## Previous Session (January 20, 2026 - Earlier)
 
 ### 1. Fixed Date Picker Timezone Bug
 - **Problem:** When editing pay period dates, selecting 1/21/2026 would save as 1/20/2026
@@ -62,10 +100,9 @@ None currently identified.
 
 ## Next Steps
 
-1. Complete GitHub setup:
-   - Open new terminal
-   - Run `gh auth login` to authenticate
-   - Run `gh repo create family-budget-app --public --source=. --push`
+1. Test the production app at https://family-budget-sand.vercel.app
+2. Monitor for any issues with Firebase/Firestore in production
+3. Consider adding a custom domain if desired
 
 ---
 
