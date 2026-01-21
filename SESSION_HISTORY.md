@@ -1,5 +1,5 @@
 # Budget App Session History
-**Last Updated:** January 19, 2026
+**Last Updated:** January 20, 2026
 
 ---
 
@@ -14,90 +14,90 @@ Remaining Budget = Available Budget - Mortgage - Savings - Total Spending
 
 ---
 
-## Completed This Session
+## Completed This Session (January 20, 2026)
 
-### 1. Transaction List Feature (NEW)
-- Created `src/components/TransactionList.jsx` - full CRUD interface for transactions
-- Added `/transactions` route to `App.jsx`
-- Added "Transactions" link to navigation in `Layout.jsx`
-- Features:
-  - Tabs for each payment method (Amex, Chase Amazon, Savor, Checking)
-  - Add transaction form
-  - Inline edit with amount and payment method change
-  - Delete with confirmation
-  - Shows transaction count per account
+### 1. Fixed Date Picker Timezone Bug
+- **Problem:** When editing pay period dates, selecting 1/21/2026 would save as 1/20/2026
+- **Cause:** `new Date("YYYY-MM-DD")` parses as UTC midnight, which shifts back a day in US timezones
+- **Solution:**
+  - Added `parseDateFromInput()` function to `src/utils/dateHelpers.js`
+  - Updated `PayPeriodManager.jsx` to use this function instead of `new Date()`
+  - The function splits the date string and creates a local-time Date object
 
-### 2. Edit Pay Period Dates
-- Updated `PayPeriodManager.jsx` to allow editing start and end dates
-- Added `startDate` and `endDate` fields to the edit form
+### 2. Fixed Transaction Delete Reactivity
+- **Problem:** Deleting a transaction didn't update the budget total on Dashboard in real-time
+- **Cause:** React wasn't properly detecting dependency changes in the budget calculation
+- **Solution:**
+  - Changed `getBudget` from `useCallback` to `useMemo` in `BudgetContext.jsx`
+  - Made dependencies explicit: `[currentPayPeriod, transactions, overrides, budgetView, oneTimeIncomeItems, appConfig, incomeConfig]`
+  - Budget now recalculates immediately when transactions change
 
-### 3. Firestore Subscription Fixes
-- Fixed composite index issues in `src/firebase/firestore.js`
-- `subscribeToTransactions` and `subscribeToOneTimeIncome` now have fallback queries
-- When Firestore index is missing, falls back to query without `orderBy` and sorts client-side
-- Fixed unsubscribe pattern to properly track which subscription is active
-
-### 4. Override Handling for Transaction CRUD
-- Updated `src/hooks/useTransactions.js`:
-  - `remove()` now subtracts transaction amount from override (if set)
-  - `update()` now adjusts override when amount or payment method changes
-  - `add()` already added to override (was working)
-
-### 5. Budget Calculation Verification
-- Verified the calculation logic is correct
-- User had a data entry discrepancy (Savor was $774.59 in app vs $705.03 in sheet)
-- Once corrected, app matched expected $3,361.79
+### 3. Git Repository Setup
+- Initialized git repository in `Budget_App` folder
+- Updated `.gitignore` to exclude `.env` files
+- Created `.env.example` with Firebase configuration template
+- Created initial commit with all project files
+- Configured git identity (Eric Bruce, eabruce@gmail.com)
+- Installed GitHub CLI for pushing to remote
 
 ---
 
 ## Outstanding Issues
 
-### Transaction Delete Not Updating Budget in Real-Time
-- **Symptom:** When deleting a transaction, the budget total doesn't immediately recalculate
-- **Status:** Partially addressed with subscription fixes, but may still have issues
-- **Possible causes:**
-  1. Firestore subscription not firing on delete
-  2. React state not triggering re-render
-  3. Override not being updated (fixed in useTransactions.js)
-- **Next steps:** Add debug logging to trace the data flow, or test after a page refresh
+None currently identified.
 
 ---
 
-## Key Files Modified
+## Key Files Modified This Session
 
 | File | Changes |
 |------|---------|
-| `src/firebase/firestore.js` | Fixed subscription fallback pattern for missing indexes |
-| `src/hooks/useTransactions.js` | Added override handling for update/delete |
-| `src/components/TransactionList.jsx` | NEW - Transaction list with CRUD |
-| `src/components/PayPeriodManager.jsx` | Added date editing capability |
-| `src/contexts/BudgetContext.jsx` | Added `updateTransaction` action |
-| `src/App.jsx` | Added `/transactions` route |
-| `src/components/Layout.jsx` | Added Transactions to navigation |
+| `src/utils/dateHelpers.js` | Added `parseDateFromInput()` function |
+| `src/components/PayPeriodManager.jsx` | Fixed date parsing to use local time |
+| `src/contexts/BudgetContext.jsx` | Changed budget calc to `useMemo` for proper reactivity |
+| `family-budget/.gitignore` | Added `.env` file exclusions |
+| `family-budget/.env.example` | NEW - Firebase config template |
 
 ---
 
-## Current App Values (as of session end)
-- Checking Balance: $10,860.03
-- Paycheck: $4,179.40
-- Checking Floor: $4,700
-- Mortgage Carveout: $566.67 (user's sheet uses $567)
-- Savings: $850
-- Amex: $4,705
-- Chase Amazon: $150.61
-- Savor: $705.03 (corrected from $774.59)
-- **Remaining Budget:** $3,361.79
+## Next Steps
+
+1. Complete GitHub setup:
+   - Open new terminal
+   - Run `gh auth login` to authenticate
+   - Run `gh repo create family-budget-app --public --source=. --push`
 
 ---
 
 ## Dev Server
 - Running on `http://localhost:5173`
 - Start command: `cd family-budget && npm run dev`
-- Background task ID: `bd3a9e0`
 
 ---
 
-## Previous Work (from earlier sessions)
+## Previous Work (January 19, 2026)
+
+### Transaction List Feature
+- Created `src/components/TransactionList.jsx` - full CRUD interface
+- Added `/transactions` route and navigation link
+- Tabs for each payment method, inline edit, delete with confirmation
+
+### Edit Pay Period Dates
+- Updated `PayPeriodManager.jsx` to allow editing start and end dates
+
+### Firestore Subscription Fixes
+- Fixed composite index issues with fallback queries
+- Fixed unsubscribe pattern for proper subscription tracking
+
+### Override Handling for Transaction CRUD
+- `remove()` subtracts from override, `update()` adjusts override
+
+### Budget Calculation Verification
+- Confirmed calculations match expected values
+
+---
+
+## Previous Work (Earlier Sessions)
 - Flexible income sources (weekly, biweekly, semimonthly, monthly cadences)
 - One-time income entries
 - Income source CRUD in Settings
