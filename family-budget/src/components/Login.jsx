@@ -2,18 +2,16 @@ import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Login() {
-  const { signInWithGoogle } = useAuth();
-  const [error, setError] = useState(null);
+  const { signInWithGoogle, authError, clearAuthError } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
-    setError(null);
+    clearAuthError();
     setIsLoading(true);
 
     try {
       await signInWithGoogle();
     } catch (err) {
-      setError('Failed to sign in. Please try again.');
       console.error('Sign in error:', err);
     } finally {
       setIsLoading(false);
@@ -32,9 +30,9 @@ export default function Login() {
           </p>
         </div>
 
-        {error && (
+        {authError && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 text-sm">{error}</p>
+            <p className="text-red-700 text-sm">{authError}</p>
           </div>
         )}
 

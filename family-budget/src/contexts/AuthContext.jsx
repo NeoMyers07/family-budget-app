@@ -4,6 +4,16 @@ import { auth, googleProvider } from '../firebase/config';
 
 const AuthContext = createContext();
 
+// Allowed email addresses
+const ALLOWED_EMAILS = [
+  'eabruce@gmail.com',
+  'jbfinger@gmail.com'
+];
+
+function isEmailAllowed(email) {
+  return ALLOWED_EMAILS.includes(email?.toLowerCase());
+}
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -15,10 +25,19 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user && !isEmailAllowed(user.email)) {
+        // Unauthorized user - sign them out
+        await signOut(auth);
+        setUser(null);
+        setAuthError('Access denied. This app is restricted to authorized users only.');
+      } else {
+        setUser(user);
+        setAuthError(null);
+      }
       setLoading(false);
     });
 
@@ -27,10 +46,18 @@ export function AuthProvider({ children }) {
 
   async function signInWithGoogle() {
     try {
+      setAuthError(null);
       const result = await signInWithPopup(auth, googleProvider);
+
+      if (!isEmailAllowed(result.user.email)) {
+        await signOut(auth);
+        throw new Error('Access denied. This app is restricted to authorized users only.');
+      }
+
       return result.user;
     } catch (error) {
       console.error('Error signing in with Google:', error);
+      setAuthError(error.message);
       throw error;
     }
   }
@@ -44,9 +71,15 @@ export function AuthProvider({ children }) {
     }
   }
 
+  function clearAuthError() {
+    setAuthError(null);
+  }
+
   const value = {
     user,
     loading,
+    authError,
+    clearAuthError,
     signInWithGoogle,
     logout,
     isAuthenticated: !!user

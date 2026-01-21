@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(vercel env add:*)",
+      "Bash(vercel --prod:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nUpdate session history with deployment details\n\n- GitHub repo and Vercel deployment setup\n- Firebase env vars configuration\n- Google Sign-In authorization fixes\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)"
+    ]
+  }
+}
