@@ -50,6 +50,16 @@ Remaining Budget = Available Budget - Mortgage - Savings - Total Spending
 - Deleted old Vercel project (`family-budget-app`)
 - Updated `.gitignore` to exclude `.vercel` folders
 
+### 6. Access Restriction
+- Implemented email whitelist to restrict app access
+- Only authorized users can sign in:
+  - `eabruce@gmail.com` (Eric)
+  - `jbfinger@gmail.com` (Jessica)
+- Unauthorized users see "Access denied" message and are signed out
+- Modified files:
+  - `src/contexts/AuthContext.jsx` - Added `ALLOWED_EMAILS` whitelist and validation
+  - `src/components/Login.jsx` - Display auth errors from context
+
 ---
 
 ## Previous Session (January 20, 2026 - Earlier)
