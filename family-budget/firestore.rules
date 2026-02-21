@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthorizedUser() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          'eabruce@gmail.com',
+          'jbfinger@gmail.com'
+        ];
+    }
+
+    // Deny all access by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    match /payPeriods/{periodId} {
+      allow read, write: if isAuthorizedUser();
+    }
+
+    match /transactions/{txId} {
+      allow read, write: if isAuthorizedUser();
+    }
+
+    match /accountOverrides/{overrideId} {
+      allow read, write: if isAuthorizedUser();
+    }
+
+    match /incomeSources/{sourceId} {
+      allow read, write: if isAuthorizedUser();
+    }
+
+    match /oneTimeIncome/{incomeId} {
+      allow read, write: if isAuthorizedUser();
+    }
+
+    match /incomeConfig/{docId} {
+      allow read, write: if isAuthorizedUser();
+    }
+
+    match /appConfig/{docId} {
+      allow read, write: if isAuthorizedUser();
+    }
+  }
+}
