@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useIncomeConfig } from '../hooks/useIncomeConfig';
-import { parseCurrency, formatCurrency, DEFAULT_CHECKING_FLOOR } from '../utils/calculations';
+import { parseCurrency, formatCurrency } from '../utils/calculations';
 import { formatDate } from '../utils/dateHelpers';
 import IncomeSourceForm from './IncomeSourceForm';
 
@@ -29,6 +29,10 @@ export default function IncomeSettings() {
   const [checkingFloorValue, setCheckingFloorValue] = useState(checkingFloor.toString());
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    setCheckingFloorValue(checkingFloor.toString());
+  }, [checkingFloor]);
 
   const handleSaveCheckingFloor = async () => {
     setSuccess(false);
@@ -73,7 +77,6 @@ export default function IncomeSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Income Sources Section */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-800">Income Sources</h3>
@@ -114,7 +117,7 @@ export default function IncomeSettings() {
                     <div className="mt-1 text-sm text-gray-600 space-y-1">
                       <p>
                         <span className="font-medium">{formatCurrency(source.payAmount)}</span>
-                        {' Â· '}
+                        {' · '}
                         {CADENCE_LABELS[source.cadence] || source.cadence}
                       </p>
                       {source.cadence === 'semimonthly' && source.semimonthlyDays ? (
@@ -167,7 +170,6 @@ export default function IncomeSettings() {
                   </div>
                 </div>
 
-                {/* Delete Confirmation */}
                 {showDeleteConfirm === source.id && (
                   <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-700 mb-3">
@@ -196,7 +198,6 @@ export default function IncomeSettings() {
         )}
       </div>
 
-      {/* App Settings Section */}
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Account Settings</h3>
 
@@ -228,14 +229,12 @@ export default function IncomeSettings() {
           </p>
         </div>
 
-        {/* Success Message */}
         {success && (
           <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-green-700 text-sm">Settings saved successfully!</p>
           </div>
         )}
 
-        {/* Error Message */}
         {error && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-700 text-sm">{error}</p>
@@ -243,9 +242,9 @@ export default function IncomeSettings() {
         )}
       </div>
 
-      {/* Add/Edit Income Source Modal */}
       {(showAddForm || editingSource) && (
         <IncomeSourceForm
+          key={editingSource?.id || 'new-income-source'}
           source={editingSource}
           onSave={editingSource ? handleUpdateSource : handleAddSource}
           onClose={() => {

@@ -1,10 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
 import { signInWithPopup, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase/config';
 
 const AuthContext = createContext();
 
-// Allowed email addresses
 const ALLOWED_EMAILS = [
   'eabruce@gmail.com',
   'jbfinger@gmail.com'
@@ -30,7 +30,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && !isEmailAllowed(user.email)) {
-        // Unauthorized user - sign them out
         await signOut(auth);
         setUser(null);
         setAuthError('Access denied. This app is restricted to authorized users only.');

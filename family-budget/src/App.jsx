@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { BudgetProvider } from './contexts/BudgetContext';
 import Layout from './components/Layout';
@@ -26,6 +26,18 @@ function PrivateRoute({ children }) {
   return children;
 }
 
+function ProtectedAppShell() {
+  return (
+    <PrivateRoute>
+      <BudgetProvider>
+        <Layout>
+          <Outlet />
+        </Layout>
+      </BudgetProvider>
+    </PrivateRoute>
+  );
+}
+
 function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -43,54 +55,12 @@ function AppRoutes() {
         path="/login"
         element={user ? <Navigate to="/" replace /> : <Login />}
       />
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <BudgetProvider>
-              <Layout>
-                <Dashboard />
-              </Layout>
-            </BudgetProvider>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/transactions"
-        element={
-          <PrivateRoute>
-            <BudgetProvider>
-              <Layout>
-                <TransactionList />
-              </Layout>
-            </BudgetProvider>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/pay-period"
-        element={
-          <PrivateRoute>
-            <BudgetProvider>
-              <Layout>
-                <PayPeriodManager />
-              </Layout>
-            </BudgetProvider>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <PrivateRoute>
-            <BudgetProvider>
-              <Layout>
-                <IncomeSettings />
-              </Layout>
-            </BudgetProvider>
-          </PrivateRoute>
-        }
-      />
+      <Route element={<ProtectedAppShell />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/transactions" element={<TransactionList />} />
+        <Route path="/pay-period" element={<PayPeriodManager />} />
+        <Route path="/settings" element={<IncomeSettings />} />
+      </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

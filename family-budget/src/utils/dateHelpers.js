@@ -9,26 +9,19 @@ export function getNextBiweeklyPayDate(referenceDate, fromDate = new Date()) {
   const ref = new Date(referenceDate);
   const from = new Date(fromDate);
 
-  // Set times to midnight for accurate day comparison
   ref.setHours(0, 0, 0, 0);
   from.setHours(0, 0, 0, 0);
 
-  // If reference is in the future, return it
   if (ref >= from) {
     return ref;
   }
 
-  // Calculate days since reference date
   const daysDiff = Math.floor((from - ref) / (1000 * 60 * 60 * 24));
-
-  // Calculate how many 14-day cycles have passed
   const cyclesPassed = Math.floor(daysDiff / 14);
 
-  // Calculate next pay date
   const nextPayDate = new Date(ref);
   nextPayDate.setDate(ref.getDate() + (cyclesPassed + 1) * 14);
 
-  // If the calculated date is still in the past or today, add another cycle
   if (nextPayDate <= from) {
     nextPayDate.setDate(nextPayDate.getDate() + 14);
   }
@@ -43,30 +36,29 @@ export function getNextMonthlyPayDate(referenceDate, fromDate = new Date()) {
   const ref = new Date(referenceDate);
   const from = new Date(fromDate);
 
-  // Set times to midnight
   ref.setHours(0, 0, 0, 0);
   from.setHours(0, 0, 0, 0);
 
-  // If reference is in the future, return it
   if (ref >= from) {
     return ref;
   }
 
-  // Get the day of month from reference
   const dayOfMonth = ref.getDate();
 
-  // Start with the current month
-  let nextPayDate = new Date(from.getFullYear(), from.getMonth(), dayOfMonth);
+  const buildMonthlyDate = (year, month) => {
+    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+    return new Date(year, month, Math.min(dayOfMonth, lastDayOfMonth));
+  };
 
-  // If the day has passed this month, move to next month
+  let year = from.getFullYear();
+  let month = from.getMonth();
+  let nextPayDate = buildMonthlyDate(year, month);
+
   if (nextPayDate <= from) {
-    nextPayDate.setMonth(nextPayDate.getMonth() + 1);
-  }
-
-  // Handle months with fewer days
-  while (nextPayDate.getDate() !== dayOfMonth) {
-    // If the month doesn't have this day, use last day of month
-    nextPayDate = new Date(nextPayDate.getFullYear(), nextPayDate.getMonth() + 1, 0);
+    month += 1;
+    year += Math.floor(month / 12);
+    month %= 12;
+    nextPayDate = buildMonthlyDate(year, month);
   }
 
   return nextPayDate;
@@ -79,26 +71,19 @@ export function getNextWeeklyPayDate(referenceDate, fromDate = new Date()) {
   const ref = new Date(referenceDate);
   const from = new Date(fromDate);
 
-  // Set times to midnight for accurate day comparison
   ref.setHours(0, 0, 0, 0);
   from.setHours(0, 0, 0, 0);
 
-  // If reference is in the future, return it
   if (ref >= from) {
     return ref;
   }
 
-  // Calculate days since reference date
   const daysDiff = Math.floor((from - ref) / (1000 * 60 * 60 * 24));
-
-  // Calculate how many 7-day cycles have passed
   const cyclesPassed = Math.floor(daysDiff / 7);
 
-  // Calculate next pay date
   const nextPayDate = new Date(ref);
   nextPayDate.setDate(ref.getDate() + (cyclesPassed + 1) * 7);
 
-  // If the calculated date is still in the past or today, add another cycle
   if (nextPayDate <= from) {
     nextPayDate.setDate(nextPayDate.getDate() + 7);
   }
@@ -119,27 +104,23 @@ export function getNextSemimonthlyPayDate(semimonthlyDays, fromDate = new Date()
   const year = from.getFullYear();
   const month = from.getMonth();
 
-  // Helper to get valid day for a month (handles months with fewer days)
   const getValidDay = (targetYear, targetMonth, targetDay) => {
     const lastDayOfMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
     return Math.min(targetDay, lastDayOfMonth);
   };
 
-  // Check day1 of current month
   const validDay1 = getValidDay(year, month, day1);
   const date1 = new Date(year, month, validDay1);
   if (date1 > from) {
     return date1;
   }
 
-  // Check day2 of current month
   const validDay2 = getValidDay(year, month, day2);
   const date2 = new Date(year, month, validDay2);
   if (date2 > from) {
     return date2;
   }
 
-  // Move to day1 of next month
   const nextMonth = month + 1;
   const nextYear = nextMonth > 11 ? year + 1 : year;
   const normalizedMonth = nextMonth % 12;
@@ -175,14 +156,12 @@ export function getNextPayDateByCadence(incomeSource, fromDate = new Date()) {
  * @param {Date} fromDate - Date to calculate from
  */
 export function getNextPaycheckFromSources(incomeSources, fromDate = new Date()) {
-  // Filter to active sources only
   const activeSources = incomeSources.filter(s => s.isActive);
 
   if (activeSources.length === 0) {
     return null;
   }
 
-  // Calculate next pay date for each source
   const sourcePayDates = activeSources.map(source => {
     const nextDate = getNextPayDateByCadence(source, fromDate);
     return {
@@ -191,19 +170,15 @@ export function getNextPaycheckFromSources(incomeSources, fromDate = new Date())
     };
   });
 
-  // Sort by date ascending
   sourcePayDates.sort((a, b) => a.nextDate - b.nextDate);
 
-  // Get earliest date
   const earliest = sourcePayDates[0];
 
-  // Find all sources within 7 days of earliest (same-week logic)
   const sameWeekSources = sourcePayDates.filter(s => {
     const daysDiff = Math.abs((s.nextDate - earliest.nextDate) / (1000 * 60 * 60 * 24));
     return daysDiff <= 7;
   });
 
-  // Combine if multiple in same week
   if (sameWeekSources.length > 1) {
     return {
       sources: sameWeekSources.map(s => s.source),
@@ -233,12 +208,10 @@ export function getPayPeriodEndDateFromSources(startDate, incomeSources) {
   const start = new Date(startDate);
   start.setHours(0, 0, 0, 0);
 
-  // Get next paycheck after start date (add 1 day to start to skip same-day paycheck)
   const dayAfterStart = new Date(start.getTime() + 86400000);
   const nextPay = getNextPaycheckFromSources(incomeSources, dayAfterStart);
 
   if (!nextPay) {
-    // No active income sources, default to 14 days
     const endDate = new Date(start);
     endDate.setDate(endDate.getDate() + 13);
     return {
@@ -247,7 +220,6 @@ export function getPayPeriodEndDateFromSources(startDate, incomeSources) {
     };
   }
 
-  // End date is one day before the next pay date
   const endDate = new Date(nextPay.date);
   endDate.setDate(endDate.getDate() - 1);
 
@@ -267,12 +239,10 @@ export function getNextPaycheck(ericNextPayDate, jessicaNextPayDate, ericAmount,
   ericDate.setHours(0, 0, 0, 0);
   jessicaDate.setHours(0, 0, 0, 0);
 
-  // Check if both fall within the same week (7 days of each other)
   const daysDiff = Math.abs((ericDate - jessicaDate) / (1000 * 60 * 60 * 24));
   const sameWeek = daysDiff <= 7;
 
   if (sameWeek) {
-    // If same week, combine them
     const earlierDate = ericDate <= jessicaDate ? ericDate : jessicaDate;
     return {
       source: 'Both',
@@ -283,7 +253,6 @@ export function getNextPaycheck(ericNextPayDate, jessicaNextPayDate, ericAmount,
     };
   }
 
-  // Otherwise, return whichever comes first
   if (ericDate <= jessicaDate) {
     return {
       source: 'Eric',
@@ -292,15 +261,15 @@ export function getNextPaycheck(ericNextPayDate, jessicaNextPayDate, ericAmount,
       ericDate,
       jessicaDate
     };
-  } else {
-    return {
-      source: 'Jessica',
-      amount: jessicaAmount,
-      date: jessicaDate,
-      ericDate,
-      jessicaDate
-    };
   }
+
+  return {
+    source: 'Jessica',
+    amount: jessicaAmount,
+    date: jessicaDate,
+    ericDate,
+    jessicaDate
+  };
 }
 
 /**
@@ -310,11 +279,9 @@ export function getNextPaycheck(ericNextPayDate, jessicaNextPayDate, ericAmount,
 export function getPayPeriodEndDate(startDate, incomeConfig) {
   const { ericNextPayDate, jessicaNextPayDate, ericPayAmount, jessicaPayAmount } = incomeConfig;
 
-  // Get next Eric and Jessica pay dates after the start date
   const nextEricPay = getNextBiweeklyPayDate(ericNextPayDate, startDate);
   const nextJessicaPay = getNextMonthlyPayDate(jessicaNextPayDate, startDate);
 
-  // Skip if the pay date is the start date itself
   const start = new Date(startDate);
   start.setHours(0, 0, 0, 0);
 
@@ -328,10 +295,8 @@ export function getPayPeriodEndDate(startDate, incomeConfig) {
     jessicaPayAfterStart = getNextMonthlyPayDate(jessicaNextPayDate, new Date(start.getTime() + 86400000));
   }
 
-  // Determine which comes first
   const nextPay = getNextPaycheck(ericPayAfterStart, jessicaPayAfterStart, ericPayAmount, jessicaPayAmount);
 
-  // End date is one day before the next pay date
   const endDate = new Date(nextPay.date);
   endDate.setDate(endDate.getDate() - 1);
 

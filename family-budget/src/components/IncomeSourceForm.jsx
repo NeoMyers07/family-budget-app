@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { parseCurrency } from '../utils/calculations';
 import { formatDateForInput } from '../utils/dateHelpers';
 
@@ -9,37 +9,36 @@ const CADENCE_OPTIONS = [
   { value: 'monthly', label: 'Monthly', description: 'Same day each month' }
 ];
 
+function getInitialFormData(source) {
+  if (!source) {
+    return {
+      name: '',
+      payAmount: '',
+      cadence: 'biweekly',
+      nextPayDate: formatDateForInput(new Date()),
+      semimonthlyDay1: '1',
+      semimonthlyDay2: '15',
+      isActive: true
+    };
+  }
+
+  return {
+    name: source.name || '',
+    payAmount: source.payAmount?.toString() || '',
+    cadence: source.cadence || 'biweekly',
+    nextPayDate: formatDateForInput(source.nextPayDate || new Date()),
+    semimonthlyDay1: source.semimonthlyDays?.[0]?.toString() || '1',
+    semimonthlyDay2: source.semimonthlyDays?.[1]?.toString() || '15',
+    isActive: source.isActive ?? true
+  };
+}
+
 export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) {
-  const [formData, setFormData] = useState({
-    name: '',
-    payAmount: '',
-    cadence: 'biweekly',
-    nextPayDate: formatDateForInput(new Date()),
-    semimonthlyDay1: '1',
-    semimonthlyDay2: '15',
-    isActive: true
-  });
-
+  const [formData, setFormData] = useState(() => getInitialFormData(source));
   const [errors, setErrors] = useState({});
-
-  // Initialize form data when editing
-  useEffect(() => {
-    if (source) {
-      setFormData({
-        name: source.name || '',
-        payAmount: source.payAmount?.toString() || '',
-        cadence: source.cadence || 'biweekly',
-        nextPayDate: formatDateForInput(source.nextPayDate || new Date()),
-        semimonthlyDay1: source.semimonthlyDays?.[0]?.toString() || '1',
-        semimonthlyDay2: source.semimonthlyDays?.[1]?.toString() || '15',
-        isActive: source.isActive ?? true
-      });
-    }
-  }, [source]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when field is edited
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: null }));
     }
@@ -58,8 +57,8 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
     }
 
     if (formData.cadence === 'semimonthly') {
-      const day1 = parseInt(formData.semimonthlyDay1);
-      const day2 = parseInt(formData.semimonthlyDay2);
+      const day1 = parseInt(formData.semimonthlyDay1, 10);
+      const day2 = parseInt(formData.semimonthlyDay2, 10);
       if (isNaN(day1) || day1 < 1 || day1 > 31) {
         newErrors.semimonthlyDay1 = 'Invalid day';
       }
@@ -69,10 +68,8 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
       if (day1 === day2) {
         newErrors.semimonthlyDay2 = 'Days must be different';
       }
-    } else {
-      if (!formData.nextPayDate) {
-        newErrors.nextPayDate = 'Date is required';
-      }
+    } else if (!formData.nextPayDate) {
+      newErrors.nextPayDate = 'Date is required';
     }
 
     setErrors(newErrors);
@@ -95,10 +92,9 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
 
     if (formData.cadence === 'semimonthly') {
       sourceData.semimonthlyDays = [
-        parseInt(formData.semimonthlyDay1),
-        parseInt(formData.semimonthlyDay2)
+        parseInt(formData.semimonthlyDay1, 10),
+        parseInt(formData.semimonthlyDay2, 10)
       ].sort((a, b) => a - b);
-      // For semimonthly, use today as reference
       sourceData.nextPayDate = new Date();
     } else {
       sourceData.nextPayDate = new Date(formData.nextPayDate);
@@ -117,7 +113,6 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
           </h3>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Name
@@ -136,7 +131,6 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
               )}
             </div>
 
-            {/* Pay Amount */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Pay Amount
@@ -159,7 +153,6 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
               )}
             </div>
 
-            {/* Cadence */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Pay Frequency
@@ -180,7 +173,6 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
               </p>
             </div>
 
-            {/* Semimonthly Days */}
             {formData.cadence === 'semimonthly' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -223,7 +215,6 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
               </div>
             )}
 
-            {/* Next Pay Date (for non-semimonthly) */}
             {formData.cadence !== 'semimonthly' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -246,7 +237,6 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
               </div>
             )}
 
-            {/* Active Toggle */}
             <div className="flex items-center gap-3">
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -263,7 +253,6 @@ export default function IncomeSourceForm({ source, onSave, onClose, isSaving }) 
               Inactive sources won't be included in pay period calculations
             </p>
 
-            {/* Buttons */}
             <div className="flex gap-3 pt-4">
               <button
                 type="submit"
