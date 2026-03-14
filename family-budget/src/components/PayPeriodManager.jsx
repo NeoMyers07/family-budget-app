@@ -1,10 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePayPeriod } from '../hooks/usePayPeriod';
 import { useIncomeConfig } from '../hooks/useIncomeConfig';
 import { useOneTimeIncome } from '../hooks/useOneTimeIncome';
 import { formatCurrency, parseCurrency, DEFAULT_MORTGAGE_CARVEOUT } from '../utils/calculations';
 import { formatDate, formatDateForInput, parseDateFromInput } from '../utils/dateHelpers';
 import OneTimeIncomeManager from './OneTimeIncomeManager';
+
+const EMPTY_FORM = {
+  startDate: '',
+  endDate: '',
+  startingCheckingBalance: '',
+  paycheckAmount: '',
+  mortgageCarveout: DEFAULT_MORTGAGE_CARVEOUT.toString(),
+  savingsAmount: '0'
+};
 
 export default function PayPeriodManager() {
   const {
@@ -23,60 +32,47 @@ export default function PayPeriodManager() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [showNewPeriodForm, setShowNewPeriodForm] = useState(false);
-  const [formData, setFormData] = useState({
-    startDate: '',
-    endDate: '',
-    startingCheckingBalance: '',
-    paycheckAmount: '',
-    mortgageCarveout: DEFAULT_MORTGAGE_CARVEOUT.toString(),
-    savingsAmount: '0'
-  });
-  const [editInitialized, setEditInitialized] = useState(false);
-  const [newPeriodInitialized, setNewPeriodInitialized] = useState(false);
-
-  // Initialize form data when editing (only once)
-  useEffect(() => {
-    if (isEditing && currentPayPeriod && !editInitialized) {
-      const startDate = currentPayPeriod.startDate?.toDate?.() || currentPayPeriod.startDate;
-      const endDate = currentPayPeriod.endDate?.toDate?.() || currentPayPeriod.endDate;
-      setFormData({
-        startDate: formatDateForInput(startDate),
-        endDate: formatDateForInput(endDate),
-        startingCheckingBalance: currentPayPeriod.startingCheckingBalance?.toString() || '',
-        paycheckAmount: currentPayPeriod.paycheckAmount?.toString() || '',
-        mortgageCarveout: (currentPayPeriod.mortgageCarveout ?? DEFAULT_MORTGAGE_CARVEOUT).toString(),
-        savingsAmount: (currentPayPeriod.savingsAmount || 0).toString()
-      });
-      setEditInitialized(true);
-    }
-    // Reset when closing edit form
-    if (!isEditing) {
-      setEditInitialized(false);
-    }
-  }, [isEditing, currentPayPeriod, editInitialized]);
-
-  // Initialize form data for new period (only once)
-  useEffect(() => {
-    if (showNewPeriodForm && !newPeriodInitialized) {
-      const defaults = getNewPayPeriodDefaults();
-      if (defaults) {
-        setFormData({
-          startingCheckingBalance: defaults.startingCheckingBalance?.toString() || '',
-          paycheckAmount: defaults.paycheckAmount?.toString() || '',
-          mortgageCarveout: defaults.mortgageCarveout.toString(),
-          savingsAmount: defaults.savingsAmount.toString()
-        });
-        setNewPeriodInitialized(true);
-      }
-    }
-    // Reset when closing new period form
-    if (!showNewPeriodForm) {
-      setNewPeriodInitialized(false);
-    }
-  }, [showNewPeriodForm, getNewPayPeriodDefaults, newPeriodInitialized]);
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const openEditForm = () => {
+    if (!currentPayPeriod) {
+      return;
+    }
+
+    const startDate = currentPayPeriod.startDate?.toDate?.() || currentPayPeriod.startDate;
+    const endDate = currentPayPeriod.endDate?.toDate?.() || currentPayPeriod.endDate;
+
+    setFormData({
+      startDate: formatDateForInput(startDate),
+      endDate: formatDateForInput(endDate),
+      startingCheckingBalance: currentPayPeriod.startingCheckingBalance?.toString() || '',
+      paycheckAmount: currentPayPeriod.paycheckAmount?.toString() || '',
+      mortgageCarveout: (currentPayPeriod.mortgageCarveout ?? DEFAULT_MORTGAGE_CARVEOUT).toString(),
+      savingsAmount: (currentPayPeriod.savingsAmount || 0).toString()
+    });
+    setIsEditing(true);
+  };
+
+  const openNewPeriodForm = () => {
+    const defaults = getNewPayPeriodDefaults();
+
+    if (defaults) {
+      setFormData({
+        ...EMPTY_FORM,
+        startingCheckingBalance: defaults.startingCheckingBalance?.toString() || '',
+        paycheckAmount: defaults.paycheckAmount?.toString() || '',
+        mortgageCarveout: defaults.mortgageCarveout.toString(),
+        savingsAmount: defaults.savingsAmount.toString()
+      });
+    } else {
+      setFormData(EMPTY_FORM);
+    }
+
+    setShowNewPeriodForm(true);
   };
 
   const handleStartNewPeriod = async () => {
@@ -88,6 +84,7 @@ export default function PayPeriodManager() {
         savingsAmount: parseCurrency(formData.savingsAmount)
       });
       setShowNewPeriodForm(false);
+      setFormData(EMPTY_FORM);
     } catch (err) {
       console.error('Failed to start new period:', err);
     }
@@ -104,6 +101,7 @@ export default function PayPeriodManager() {
         savingsAmount: parseCurrency(formData.savingsAmount)
       });
       setIsEditing(false);
+      setFormData(EMPTY_FORM);
     } catch (err) {
       console.error('Failed to update period:', err);
     }
@@ -122,7 +120,6 @@ export default function PayPeriodManager() {
     );
   }
 
-  // New Period Form
   if (showNewPeriodForm) {
     const defaults = getNewPayPeriodDefaults();
 
@@ -220,7 +217,10 @@ export default function PayPeriodManager() {
             {isCreating ? 'Creating...' : 'Start Pay Period'}
           </button>
           <button
-            onClick={() => setShowNewPeriodForm(false)}
+            onClick={() => {
+              setShowNewPeriodForm(false);
+              setFormData(EMPTY_FORM);
+            }}
             className="py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
           >
             Cancel
@@ -230,14 +230,12 @@ export default function PayPeriodManager() {
     );
   }
 
-  // Edit Current Period Form
   if (isEditing && currentPayPeriod) {
     return (
       <div className="bg-white rounded-xl shadow-sm p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">Edit Pay Period</h3>
 
         <div className="space-y-4">
-          {/* Period Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -343,7 +341,10 @@ export default function PayPeriodManager() {
             {isUpdating ? 'Saving...' : 'Save Changes'}
           </button>
           <button
-            onClick={() => setIsEditing(false)}
+            onClick={() => {
+              setIsEditing(false);
+              setFormData(EMPTY_FORM);
+            }}
             className="py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
           >
             Cancel
@@ -353,7 +354,6 @@ export default function PayPeriodManager() {
     );
   }
 
-  // Default View
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
       <div className="flex items-center justify-between mb-4">
@@ -361,14 +361,14 @@ export default function PayPeriodManager() {
         <div className="flex gap-2">
           {currentPayPeriod && (
             <button
-              onClick={() => setIsEditing(true)}
+              onClick={openEditForm}
               className="py-2 px-4 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
             >
               Edit
             </button>
           )}
           <button
-            onClick={() => setShowNewPeriodForm(true)}
+            onClick={openNewPeriodForm}
             className="py-2 px-4 text-sm bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
           >
             Start New Period
@@ -428,14 +428,12 @@ export default function PayPeriodManager() {
         </div>
       )}
 
-      {/* One-Time Income Manager (only show when there's an active pay period) */}
       {currentPayPeriod && (
         <div className="mt-6">
           <OneTimeIncomeManager />
         </div>
       )}
 
-      {/* Previous Periods */}
       {payPeriods.length > 1 && (
         <div className="mt-6 pt-6 border-t border-gray-200">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Previous Periods</h4>

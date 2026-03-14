@@ -42,10 +42,10 @@ export default function Dashboard() {
 
   const startDate = currentPayPeriod.startDate?.toDate?.() || currentPayPeriod.startDate;
   const endDate = currentPayPeriod.endDate?.toDate?.() || currentPayPeriod.endDate;
+  const nextPaycheckLabel = nextPaycheckInfo?.sourceNames || nextPaycheckInfo?.source;
 
   return (
     <div className="space-y-6">
-      {/* Budget View Toggle */}
       <div className="flex justify-center">
         <div className="inline-flex bg-gray-100 rounded-lg p-1">
           <button
@@ -71,7 +71,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Main Budget Display */}
       <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
         <BudgetGauge
           remaining={budgetView === 'paycheck' ? budget.remainingBudget : budget.projectedChecking}
@@ -80,7 +79,6 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Pay Period Info */}
       <div className="bg-white rounded-xl shadow-sm p-4">
         <div className="flex flex-wrap gap-4 justify-center text-sm">
           <div className="flex items-center gap-2">
@@ -102,7 +100,7 @@ export default function Dashboard() {
               <div className="flex items-center gap-2">
                 <span className="text-gray-500">Next Paycheck</span>
                 <span className="font-semibold text-gray-800">
-                  {nextPaycheckInfo.source} ({getRelativeDateString(nextPaycheckInfo.date)})
+                  {nextPaycheckLabel} ({getRelativeDateString(nextPaycheckInfo.date)})
                 </span>
               </div>
             </>
@@ -110,7 +108,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Budget Details Card */}
       <div className="bg-white rounded-xl shadow-sm p-4 md:p-6">
         <div className={`grid grid-cols-2 ${hasOneTimeIncome ? 'md:grid-cols-5' : 'md:grid-cols-4'} gap-4 text-center`}>
           <div>
@@ -150,10 +147,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Add Transaction */}
       <AddTransaction />
-
-      {/* Spending Breakdown */}
       <SpendingBreakdown />
     </div>
   );

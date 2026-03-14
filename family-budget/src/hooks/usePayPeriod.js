@@ -10,6 +10,24 @@ import {
 } from '../utils/dateHelpers';
 import { DEFAULT_MORTGAGE_CARVEOUT } from '../utils/calculations';
 
+function getProjectedCheckingForCurrentPeriod(currentPayPeriod, budget) {
+  if (!currentPayPeriod) {
+    return 0;
+  }
+
+  if (typeof budget.projectedChecking === 'number') {
+    return budget.projectedChecking;
+  }
+
+  return (
+    (currentPayPeriod.startingCheckingBalance || 0) +
+    (budget.totalIncome || 0) -
+    (budget.mortgageCarveout || 0) -
+    (budget.savingsAmount || 0) -
+    (budget.totalSpending || 0)
+  );
+}
+
 export function usePayPeriod() {
   const {
     payPeriods,
@@ -33,7 +51,6 @@ export function usePayPeriod() {
 
     // Prefer new income sources model
     if (incomeSources.length > 0) {
-      // Normalize dates
       const sourcesWithDates = incomeSources.map(source => ({
         ...source,
         nextPayDate: source.nextPayDate?.toDate?.() || source.nextPayDate
@@ -42,18 +59,13 @@ export function usePayPeriod() {
       const nextPaycheck = getNextPaycheckFromSources(sourcesWithDates);
 
       if (!nextPaycheck) {
-        return null; // No active income sources
+        return null;
       }
 
-      // Start date is today
       const startDate = today;
-
-      // Calculate end date using income sources
       const { endDate } = getPayPeriodEndDateFromSources(startDate, sourcesWithDates);
-
-      // Starting balance from previous period's projected checking, or 0 if no previous
       const startingCheckingBalance = currentPayPeriod
-        ? budget.projectedChecking || currentPayPeriod.startingCheckingBalance
+        ? getProjectedCheckingForCurrentPeriod(currentPayPeriod, budget)
         : 0;
 
       return {
@@ -69,12 +81,10 @@ export function usePayPeriod() {
       };
     }
 
-    // Fall back to legacy incomeConfig
     if (!incomeConfig) {
       return null;
     }
 
-    // Get next pay dates (legacy)
     const ericDate = getNextBiweeklyPayDate(
       incomeConfig.ericNextPayDate?.toDate?.() || incomeConfig.ericNextPayDate
     );
@@ -89,10 +99,7 @@ export function usePayPeriod() {
       incomeConfig.jessicaPayAmount
     );
 
-    // Start date is today
     const startDate = today;
-
-    // Calculate end date
     const { endDate } = getPayPeriodEndDate(startDate, {
       ericNextPayDate: ericDate,
       jessicaNextPayDate: jessicaDate,
@@ -100,9 +107,8 @@ export function usePayPeriod() {
       jessicaPayAmount: incomeConfig.jessicaPayAmount
     });
 
-    // Starting balance from previous period's projected checking, or 0 if no previous
     const startingCheckingBalance = currentPayPeriod
-      ? budget.projectedChecking || currentPayPeriod.startingCheckingBalance
+      ? getProjectedCheckingForCurrentPeriod(currentPayPeriod, budget)
       : 0;
 
     return {
@@ -117,7 +123,6 @@ export function usePayPeriod() {
     };
   }, [incomeConfig, incomeSources, currentPayPeriod, budget]);
 
-  // Start a new pay period
   const startNewPayPeriod = useCallback(async (overrides = {}) => {
     setIsCreating(true);
     setError(null);
@@ -143,7 +148,6 @@ export function usePayPeriod() {
     }
   }, [getNewPayPeriodDefaults, createPayPeriod]);
 
-  // Update current pay period
   const updateCurrentPayPeriod = useCallback(async (updates) => {
     if (!currentPayPeriod?.id) {
       throw new Error('No active pay period');

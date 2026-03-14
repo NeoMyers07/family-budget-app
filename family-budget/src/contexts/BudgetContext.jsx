@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   subscribeToPayPeriods,
@@ -53,15 +54,14 @@ export function BudgetProvider({ children }) {
   const [currentPayPeriod, setCurrentPayPeriod] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [overrides, setOverrides] = useState({});
-  const [incomeConfig, setIncomeConfig] = useState(null); // Legacy - kept for backward compatibility
+  const [incomeConfig, setIncomeConfig] = useState(null);
   const [incomeSources, setIncomeSources] = useState([]);
   const [oneTimeIncomeItems, setOneTimeIncomeItems] = useState([]);
   const [appConfig, setAppConfig] = useState(null);
-  const [budgetView, setBudgetView] = useState('paycheck'); // 'paycheck' or 'checking'
+  const [budgetView, setBudgetView] = useState('paycheck');
   const [loading, setLoading] = useState(true);
   const migrationAttempted = useRef(false);
 
-  // Migration: Convert old incomeConfig to new incomeSources format
   const migrateToIncomeSources = useCallback(async () => {
     if (migrationAttempted.current) return;
     migrationAttempted.current = true;
@@ -69,19 +69,16 @@ export function BudgetProvider({ children }) {
     try {
       const sources = await getIncomeSources();
       if (sources.length > 0) {
-        // Already migrated
         return;
       }
 
       const oldConfig = await getIncomeConfig();
       if (!oldConfig) {
-        // No old config to migrate
         return;
       }
 
       console.log('Migrating incomeConfig to incomeSources...');
 
-      // Create Eric's income source
       if (oldConfig.ericPayAmount && oldConfig.ericNextPayDate) {
         await createIncomeSourceInDb({
           name: 'Eric',
@@ -93,7 +90,6 @@ export function BudgetProvider({ children }) {
         });
       }
 
-      // Create Jessica's income source
       if (oldConfig.jessicaPayAmount && oldConfig.jessicaNextPayDate) {
         await createIncomeSourceInDb({
           name: 'Jessica',
@@ -105,7 +101,6 @@ export function BudgetProvider({ children }) {
         });
       }
 
-      // Create app config with checking floor
       await saveAppConfigInDb({
         checkingFloor: oldConfig.checkingFloor || DEFAULT_CHECKING_FLOOR,
         migratedAt: new Date()
@@ -117,21 +112,16 @@ export function BudgetProvider({ children }) {
     }
   }, []);
 
-  // Subscribe to pay periods
   useEffect(() => {
     const unsubscribe = subscribeToPayPeriods((periods) => {
       setPayPeriods(periods);
-      // Set current pay period to the most recent one
-      if (periods.length > 0 && !currentPayPeriod) {
-        setCurrentPayPeriod(periods[0]);
-      }
+      setCurrentPayPeriod((prev) => prev ?? periods[0] ?? null);
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
-  // Subscribe to income config (legacy)
   useEffect(() => {
     const unsubscribe = subscribeToIncomeConfig((config) => {
       setIncomeConfig(config);
@@ -140,7 +130,6 @@ export function BudgetProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  // Subscribe to income sources (new)
   useEffect(() => {
     const unsubscribe = subscribeToIncomeSources((sources) => {
       setIncomeSources(sources);
@@ -149,7 +138,6 @@ export function BudgetProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  // Subscribe to app config
   useEffect(() => {
     const unsubscribe = subscribeToAppConfig((config) => {
       setAppConfig(config);
@@ -158,21 +146,16 @@ export function BudgetProvider({ children }) {
     return unsubscribe;
   }, []);
 
-  // Run migration after initial subscriptions are set up
   useEffect(() => {
-    // Wait for initial load
     if (loading) return;
 
-    // Check if migration is needed (no income sources but has old config)
     if (incomeSources.length === 0 && incomeConfig) {
       migrateToIncomeSources();
     }
   }, [loading, incomeSources.length, incomeConfig, migrateToIncomeSources]);
 
-  // Subscribe to transactions for current pay period
   useEffect(() => {
     if (!currentPayPeriod?.id) {
-      setTransactions([]);
       return;
     }
 
@@ -183,10 +166,8 @@ export function BudgetProvider({ children }) {
     return unsubscribe;
   }, [currentPayPeriod?.id]);
 
-  // Subscribe to account overrides for current pay period
   useEffect(() => {
     if (!currentPayPeriod?.id) {
-      setOverrides({});
       return;
     }
 
@@ -197,10 +178,8 @@ export function BudgetProvider({ children }) {
     return unsubscribe;
   }, [currentPayPeriod?.id]);
 
-  // Subscribe to one-time income for current pay period
   useEffect(() => {
     if (!currentPayPeriod?.id) {
-      setOneTimeIncomeItems([]);
       return;
     }
 
@@ -211,17 +190,26 @@ export function BudgetProvider({ children }) {
     return unsubscribe;
   }, [currentPayPeriod?.id]);
 
-  // Calculate one-time income total
-  const getOneTimeIncomeTotal = useCallback(() => {
-    return oneTimeIncomeItems.reduce((sum, item) => sum + (item.amount || 0), 0);
-  }, [oneTimeIncomeItems]);
+  const activeTransactions = useMemo(() => {
+    return currentPayPeriod?.id ? transactions : [];
+  }, [currentPayPeriod?.id, transactions]);
 
-  // Get checking floor (prefer appConfig, fall back to incomeConfig, then default)
+  const activeOverrides = useMemo(() => {
+    return currentPayPeriod?.id ? overrides : {};
+  }, [currentPayPeriod?.id, overrides]);
+
+  const activeOneTimeIncomeItems = useMemo(() => {
+    return currentPayPeriod?.id ? oneTimeIncomeItems : [];
+  }, [currentPayPeriod?.id, oneTimeIncomeItems]);
+
+  const getOneTimeIncomeTotal = useCallback(() => {
+    return activeOneTimeIncomeItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+  }, [activeOneTimeIncomeItems]);
+
   const getCheckingFloor = useCallback(() => {
     return appConfig?.checkingFloor || incomeConfig?.checkingFloor || DEFAULT_CHECKING_FLOOR;
   }, [appConfig, incomeConfig]);
 
-  // Calculate budget based on current view - using useMemo for explicit reactivity
   const budget = useMemo(() => {
     if (!currentPayPeriod) {
       return {
@@ -237,7 +225,7 @@ export function BudgetProvider({ children }) {
       };
     }
 
-    const oneTimeTotal = oneTimeIncomeItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    const oneTimeTotal = activeOneTimeIncomeItems.reduce((sum, item) => sum + (item.amount || 0), 0);
     const checkingFloor = appConfig?.checkingFloor || incomeConfig?.checkingFloor || DEFAULT_CHECKING_FLOOR;
 
     const params = {
@@ -247,20 +235,18 @@ export function BudgetProvider({ children }) {
       checkingFloor,
       mortgageCarveout: currentPayPeriod.mortgageCarveout ?? DEFAULT_MORTGAGE_CARVEOUT,
       savingsAmount: currentPayPeriod.savingsAmount || 0,
-      transactions,
-      overrides
+      transactions: activeTransactions,
+      overrides: activeOverrides
     };
 
     if (budgetView === 'paycheck') {
       return calculatePaycheckBudget(params);
-    } else {
-      return calculateCheckingBudget(params);
     }
-  }, [currentPayPeriod, transactions, overrides, budgetView, oneTimeIncomeItems, appConfig, incomeConfig]);
 
-  // Get next paycheck info - use new sources if available, fall back to legacy
+    return calculateCheckingBudget(params);
+  }, [currentPayPeriod, activeTransactions, activeOverrides, budgetView, activeOneTimeIncomeItems, appConfig, incomeConfig]);
+
   const getNextPaycheckInfo = useCallback(() => {
-    // Prefer new income sources
     if (incomeSources.length > 0) {
       const sourcesWithDates = incomeSources.map(source => ({
         ...source,
@@ -269,7 +255,6 @@ export function BudgetProvider({ children }) {
       return getNextPaycheckFromSources(sourcesWithDates);
     }
 
-    // Fall back to legacy incomeConfig
     if (!incomeConfig) return null;
 
     const ericDate = getNextBiweeklyPayDate(
@@ -287,7 +272,6 @@ export function BudgetProvider({ children }) {
     );
   }, [incomeSources, incomeConfig]);
 
-  // Get pay period progress
   const getProgress = useCallback(() => {
     if (!currentPayPeriod) return { currentDay: 0, totalDays: 0, daysRemaining: 0 };
 
@@ -296,10 +280,6 @@ export function BudgetProvider({ children }) {
 
     return getPayPeriodProgress(startDate, endDate);
   }, [currentPayPeriod]);
-
-  // ============================================
-  // Actions
-  // ============================================
 
   const createPayPeriod = async (payPeriodData) => {
     const id = await createPayPeriodInDb(payPeriodData);
@@ -343,14 +323,9 @@ export function BudgetProvider({ children }) {
     await clearAccountOverrideInDb(currentPayPeriod.id, account);
   };
 
-  // Legacy - kept for backward compatibility
   const saveIncomeConfig = async (config) => {
     await saveIncomeConfigInDb(config);
   };
-
-  // ============================================
-  // New Income Source Actions
-  // ============================================
 
   const addIncomeSource = async (sourceData) => {
     const id = await createIncomeSourceInDb(sourceData);
@@ -364,10 +339,6 @@ export function BudgetProvider({ children }) {
   const deleteIncomeSource = async (id) => {
     await deleteIncomeSourceInDb(id);
   };
-
-  // ============================================
-  // One-Time Income Actions
-  // ============================================
 
   const addOneTimeIncomeItem = async (itemData) => {
     if (!currentPayPeriod?.id) {
@@ -384,10 +355,6 @@ export function BudgetProvider({ children }) {
     await deleteOneTimeIncomeInDb(itemId);
   };
 
-  // ============================================
-  // App Config Actions
-  // ============================================
-
   const updateAppConfig = async (config) => {
     await saveAppConfigInDb(config);
   };
@@ -401,55 +368,38 @@ export function BudgetProvider({ children }) {
   };
 
   const value = {
-    // State
     payPeriods,
     currentPayPeriod,
-    transactions,
-    overrides,
-    incomeConfig, // Legacy
+    transactions: activeTransactions,
+    overrides: activeOverrides,
+    incomeConfig,
     incomeSources,
-    oneTimeIncomeItems,
+    oneTimeIncomeItems: activeOneTimeIncomeItems,
     appConfig,
     budgetView,
     loading,
 
-    // Computed
     budget,
     nextPaycheckInfo: getNextPaycheckInfo(),
     progress: getProgress(),
     oneTimeIncomeTotal: getOneTimeIncomeTotal(),
     checkingFloor: getCheckingFloor(),
 
-    // Pay Period Actions
     createPayPeriod,
     updatePayPeriod,
     selectPayPeriod,
-
-    // Transaction Actions
     addTransaction,
     updateTransaction,
     deleteTransaction,
-
-    // Override Actions
     setOverride,
     clearOverride,
-
-    // Income Config Actions (Legacy)
     saveIncomeConfig,
-
-    // Income Source Actions (New)
     addIncomeSource,
     updateIncomeSource,
     deleteIncomeSource,
-
-    // One-Time Income Actions
     addOneTimeIncomeItem,
     deleteOneTimeIncomeItem,
-
-    // App Config Actions
     updateAppConfig,
-
-    // View Actions
     toggleBudgetView,
     setBudgetView
   };
